@@ -1,0 +1,294 @@
+# Ling 160 / CogSci C140, Spring 2015
+# Week 4 Section
+# 2/12 and 2/13/2015
+
+################
+### Contents ### 
+################
+##
+## 1. HW2 questions
+##
+## 2. Saving plots
+##
+## === variation of the exercise in lecture ===
+##
+## 3. Word length frequencies and probabilities in alice vs. in moby
+##     3.1. Create frequency tables (as data frames) - of word lengths in alice and in moby
+##     3.2. Merge the data frames
+##     3.3. Add columns for frequencies rates of word lengths in alice and moby
+##     3.4. Add column for expected alice word-length frequency count given the rate in moby
+##     3.5. Add column -- High or low -- observed vs. expected alice counts
+##
+## 4. dbinom/pbinom vs. dpois/ppois
+##
+##     3.6. Add column -- pbinom -- probability of observed count (or lower/higher) given moby rate 
+##     3.7. Add column -- ppois -- probability of observed count given (moby rate * length(alice))
+##
+##
+##     3.8. Addding gl data ["Feeling adventurous?"]
+##
+################
+################
+
+
+##### 2. Saving plots #####
+#
+# Instructions:
+# - make sure plot window is selected/on top
+# - File > Save as >
+# - choose the file format you want
+
+
+##### 3. Word length frequencies and probabilities in alice vs. moby #####
+
+
+### 3.1. Create frequency tables as data frames
+
+# USEFUL FUNCTIONS:
+
+# -- nchar() -- counts the number of characters of words
+# -- table() -- creates a frequency table out of a vector (e.g., counting how many times each word occurs)
+# -- as.data.frame() -- turns an object of another format into a data frame
+
+mobyCount <- as.data.frame(table(nchar(moby)))
+aliceCount <- as.data.frame(table(nchar(alice)))
+
+
+## Make sure lengths are numeric (for better sorting when merging)
+
+# -- as.numeric() -- changes a different data type into numeric data
+#(also -- as.character() -- changes into character data)
+#(also -- as.factor() -- changes into factor data (relevant for data frames))
+
+mobyCount$Var1 <- as.numeric(mobyCount$Var1)
+aliceCount$Var1 <- as.numeric(aliceCount$Var1)
+
+
+### 3.2. Merge the two data frames
+
+# -- merge(df1, df2, by.x="df1_columnname", by.y="df2_columnname") -- 
+              # if columns to be merged have different names
+
+# -- merge(df1, df2) -- 
+#             # if the columns you want to merge from the two data frames have the same name
+
+# -- merge(df1, df2, by="columnname") --
+              # if there are at least 2 pairs of columns with the same names, 
+              # specify which pair you want to merge
+
+
+d <- merge(aliceCount, mobyCount, by="Var1")
+colnames(d) <- c("Length", "aliceCount", "mobyCount")     # Rename the columns
+
+
+### 3.3. Add columns for the moby and alice frequencies
+
+d$aliceFq <- d$aliceCount/length(alice)   # word-length frequency count divided by size of alice
+d$mobyFq <- d$mobyCount/length(moby)      # word-length frequency count divided by size of moby
+
+
+### 3.4. Add column - what would we expect the word-length frequency counts in alice to be
+### given the frequency rate in moby?
+
+d$aliceExpected <- d$mobyFq * length(alice)
+
+
+### 3.5. Add column indicating whether the observed frequency count is 
+### higher/lower than the expected frequency count
+
+d$HighLow <- "high"
+d$HighLow[d$aliceCount < d$aliceExpected] <- "low"
+
+
+
+############################################################################
+##### DIFFERENCE DBINOM vs. DPOIS | binomial vs. poisson distributions #####
+############################################################################
+
+# Quick and dirty reference on basic differences:
+# http://www2.cedarcrest.edu/academic/bio/hale/biostat/session12links/BvsP.html
+
+
+### Binomial distributions
+
+# -- dbinom(x,n,p) --
+
+# x = number of "successes" 
+#       e.g. 1 - number of coin flips ending up heads
+#       e.g. 2 - frequency count of a word in alice
+
+# n = number of trials / population size
+#       e.g. 1 - number of coin flips
+#       e.g. 2 - size of alice
+
+# p = probability of success
+#       e.g. 1 - one coin flip has 0.5 probability of showing heads (or tails)
+#       e.g. 2 - frequency *rate* of the same word in moby (if trying to compare alice to moby))
+
+dbinom(100, 1000, 0.5)
+# Using the coin flip as example, this returns a probability rate of how
+# likely there are going to be exactly 100 heads out of 1000 coin flips,
+# given the 0.5 (50%) probability of each coin toss to end up heads
+
+
+### Poisson distributions
+
+# -- dpois(x, lambda) --
+
+# x = number of "successes"
+#       e.g. in this exercise: d$aliceCount [the observed counts]
+
+# lambda = n * p (same as the n and p in dbinom)  OR  the expected number of successes 
+#       e.g. in this exercise: d$aliceExpected [the expected counts given moby's frequency rate]
+
+# Poisson is preferred over binomial for determining probability of number of word counts in a text.
+
+
+### Let's take a look at how binomial and Poisson distributions differ
+
+par(mfrow=c(1,2))  # let plot window allow 1 row and 2 columns of plot areas (so, 2 plots side by side)
+
+
+# Plot all possible outcomes (0,1,2,3...1000 successes) given 1000 trials
+
+plot(dbinom(0:1000, 1000, 0.5), type="h", xlim=c(250,750), ylim=c(0,0.032),
+xlab="Number of successes", ylab="Probability rate")
+
+# Do the Poisson equivalent
+
+plot(dpois(0:1000, 500), type="h", xlim=c(250,750), ylim=c(0,0.032),
+xlab="Number of successes", ylab="Probability rate")
+
+
+### pbinom and ppois
+ 
+pbinom(100, 1000, 0.5)         # This is the same as doing the following 
+sum(dbinom(0:100, 1000, 0.5))  # dbinom(0,1000,0.5) + dbinom(1,1000,0.5) + dbinom(2,1000,0.5) ...
+
+# The sum of probabilities of getting 100 successes OR LOWER
+# given 1000 trials and 0.5 chance of success
+
+
+ppois(100, 500)                # This is the same as doing the following
+sum(dpois(0:100, 500)          # dpois(0,500) + dpois(1,500) + dpois(2,500) ... dpois(100,500)
+
+# The sum of probabilities of getting 100 successes OR LOWER
+# given the expected number of successes to be 500
+
+
+############################################################################
+
+
+###############################
+##### DBINOM PLOT EXAMPLE #####
+###############################
+
+par(mfrow=c(1,1)) # change back to 1 plotting space only
+
+plot(dbinom(0:length(alice), length(alice), d$mobyFq[5]), type="h",
+xlim=c(3209-700,3209+700),
+yaxs="i", ylim=c(0,0.01),
+xlab="Number of 5-character words",
+ylab="Probability rate")
+
+title("Binomial probability distribution of\n5-character words in alice\n
+(given the rate of moby)")
+
+abline(v=3209, lty=2, col="red")
+
+###############################
+
+
+
+### 3.6. If the observed frequency count is lower, add column that has calculated the 
+### sum probabilities of getting the observed frequency count or lower (use pbinom)
+
+# -- pbinom(x, n, p) --
+
+d$pbinom[d$HighLow=="low"] <- pbinom(d$aliceCount[d$HighLow=="low"], length(alice), 
+d$mobyFq[d$HighLow=="low"])
+
+
+### If the observed frequency count is higher, add column that has calculated the sum 
+### probabilities of getting higher than the observed frequency count (use 1 - pbinom)
+
+d$pbinom[d$HighLow=="high"] <- 1 - pbinom(d$aliceCount[d$HighLow=="high"], 
+length(alice), d$mobyFq[d$HighLow=="high"])
+
+
+### 3.7. Do the same thing as 3.6, but with ppois()
+
+# -- ppois(x, lambda) --
+
+d$ppois[d$HighLow=="low"] <- ppois(d$aliceCount[d$HighLow=="low"], length(alice) * 
+d$mobyFq[d$HighLow=="low"])
+
+d$ppois[d$HighLow=="high"] <- 1 - ppois(d$aliceCount[d$HighLow=="high"], 
+length(alice) * d$mobyFq[d$HighLow=="high"])
+
+
+
+#####################################
+##### 3.8. FEELING ADVENTUROUS? #####
+#####################################
+
+### Challenge: Determine the average age of acquisition (use AOAMean from gl_rate.txt)
+### of all words in alice and in moby BASED ON WORD LENGTH. Which book seems to have 
+### word lengths that on average are acquired later than the other book?
+
+### Note, the gl_rate.txt data contains a much smaller set of words than alice or moby
+
+
+###### One way to do it #####
+
+
+### Get age of acquisition data from gl_rate.txt file (Files > Data on bCourses)
+
+# Make sure to save file in the correct directory
+
+# -- getwd() -- find out your working directory
+# -- setwd() -- change your working directory (e.g., setwd("C:/Herman/Documents/")
+
+# Create data frame object from file:
+
+gl.df <- read.table("gl_rate.txt", header=T)  
+
+# Add column for length of the words:
+
+gl.df <- data.frame(gl.df, nchar(as.character(gl.df$Word)))  # Note use of as.character() 
+
+
+# Create new data frame where you calculate the mean AOAMean
+# for each word length -- to do this you need to calculate
+# the frequency count of word lengths
+
+
+# -- tapply(x, y, function) -- *NEW*
+             # use help(tapply) to figure out what it does
+
+# -- with(dataframe, .....) -- *NEW*
+             # when using with, you only need to mention the data frame once
+             # then when you refer to its column you don't have to do 
+             # df$ColumnName, you can just do ColumnName.
+             # This function saves a lot of typing.
+
+w <- as.data.frame(with(gl.df, tapply(AOAMean, Length, mean)))
+colnames(w) <- "AOAMean"
+
+w <- data.frame(w, 2:15) # Add the Length column so you can merge with d later
+colnames(w)[2] <- "Length"
+
+w  # inspect w!
+
+
+dw <- merge(d, w)
+
+
+# The average age of acquisition of all words in alice based on word length:
+sum(dw$aliceCount * dw$AOAMean)/sum(d$aliceCount)
+
+# The average age of acquisition of all words in moby based on word length:
+sum(dw$mobyCount * dw$AOAMean)/sum(dw$mobyCount)
+
+
+# moby ends up have a higher average AOA mean

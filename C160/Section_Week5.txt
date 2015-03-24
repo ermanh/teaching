@@ -1,0 +1,261 @@
+# Ling 160 / CogSci C140, Spring 2015
+# Week 5 Section
+# 2/19 and 2/20/2015
+
+################
+### Contents ###
+################
+##
+## 1. One-sample t-test -- t.test(x, mu=)
+## 2. Two-sample t-test -- t.text(x, y)
+## 3. Review/Exercise integrating conditions (restricting a data set), 
+##          and Binomial and Poisson distributions (dbinom, dpois, etc.)
+##
+################
+
+
+#############################################
+##### 0. Getting data started (GL data) #####
+#############################################
+
+d <- read.table('gl_rate.txt', header=T)
+d$inMoby <- d$Word %in% tolower(moby)
+d$inAlice <- d$Word %in% tolower(alice)
+d
+
+boxplot(d$AOAMean[d$inAlice==TRUE], 
+        d$AOAMean[d$inMoby==TRUE],
+        names = c("Alice", "Moby"),
+        ylab = "Mean AoA",
+        main = "AoA of words in two very different books",
+        sub = "Data from Gilhooly & Logie, 1980")
+
+abline(h = mean(d$AOAMean), col = "blue", lty = 5)
+text(1.3, 4.5, labels = "Mean AoA in GL data", col = "blue")
+
+
+################################
+##### 1. One-sample t-test #####
+################################
+###
+### t.test(x, mu=)
+###      x -- a vector of values from a sample
+###      mu -- the mean of the distribution you are comparing x to
+###
+###      NOTE: The mu argument should be included to avoid R thinking you're
+###            trying to do a two-sample t-test instead
+###               
+###
+### This tests the null hypothesis that the sample data is randomly
+### drawn from a population whose mean is mu. That is, it checks to see
+### if the sample data and the population data are (or are not) significantly 
+### different.
+###
+### NOTE: t-tests are best suited for normally distributed data, i.e.,
+### data with a bell-shaped distribution where both sides are more or less
+### symmetrical
+
+# Perform a one-sample t-test on the mean Imaginability scores (ImagMean) in alice 
+# in comparison to the mean ImagMean of the entire GL database
+
+# Imaginality here refers to how well participants think they can visualize the word
+
+t.test(d$ImagMean[d$inAlice == TRUE], mu = mean(d$ImagMean))
+
+#        One Sample t-test
+
+# data:  d$ImagMean[d$inAlice == TRUE]
+# t = 6.5027, df = 330, p-value = 2.919e-10
+# alternative hypothesis: true mean is not equal to 4.624568
+# 95 percent confidence interval:
+#  4.877196 5.096339
+# sample estimates:
+# mean of x 
+#  4.986767 
+
+# NOTE: The p-value is NOT the probability of the null hypothesis being true.
+# It is the probability of observing the data IF the null hypothesis were true.
+# In other words, if the p-value is 0.01, there is 1% chance that the data in x 
+# could be drawn from a population whose mean is mu.
+
+# NOTE: A p-value of below 0.05 (5%) is generally considered significant.
+# Significant in terms of the data in x being unlikely to be drawn from 
+# a population whose mean is mu.
+
+
+## What about moby?
+
+t.test(d$ImagMean[d$inMoby == TRUE], mu = mean(d$ImagMean))
+
+#         One Sample t-test
+#
+# data:  d$ImagMean[d$inMoby == TRUE]
+# t = 5.9132, df = 1212, p-value = 4.359e-09
+# alternative hypothesis: true mean is not equal to 4.624568
+# 95 percent confidence interval:
+#  4.743154 4.860918
+# sample estimates:
+# mean of x 
+#  4.802036 
+
+
+################################
+##### 2. Two-sample t-test #####
+################################
+###
+### t.test(x, y)
+###     x -- vector of samples of one data set
+###     y -- vector of samples of another data set
+###
+### This tests the null hypothesis that x and y data samples are
+### drawn from the same population, or in other words, that
+### they are similar in distribution with very close means.
+
+# The ImagMean means of alice (4.986767) and moby (4.802036)
+# seem somewhat close -- are their data significantly similar?
+
+t.test(d$ImagMean[d$inAlice == TRUE], d$ImagMean[d$inMoby == TRUE])
+
+#         Welch Two Sample t-test
+# 
+# data:  d$ImagMean[d$inAlice == TRUE] and d$ImagMean[d$inMoby == TRUE]
+# t = 2.9197, df = 537.109, p-value = 0.003651
+# alternative hypothesis: true difference in means is not equal to 0
+# 95 percent confidence interval:
+#  0.06044237 0.30901982
+# sample estimates:
+# mean of x mean of y 
+#  4.986767  4.802036 
+
+# Now, compare alice and moby using the two-sample t-test over
+# FamiliarMean and ConcreteMean. # Do any of these scores between 
+# alice and moby seem more likely to have come from the same
+# population (i.e., that there is nothing significantly different
+# about them)?
+
+# "Familiar" here refers to how familiar participants felt they were with the word.
+# "Concrete" refers to how much participants felt they could actually touch the
+# thing that the word signifies.
+
+
+########################################################################
+##### 3. Review: Conditions/restricting sets, Binomial and Poisson #####
+########################################################################
+###
+### See Feb12.Rhistory and Section_Week4.txt
+### on dbinom, pbinom, dpois, and ppois
+
+# Recall the outlier in the box-and-whiskers plot -- the
+# small circle above the top whisker in the alice AOAMean data:
+
+boxplot(d$AOAMean[d$inAlice==TRUE], 
+        d$AOAMean[d$inMoby==TRUE],
+        names = c("Alice", "Moby"),
+        ylab = "Mean AoA",
+        main = "AoA of words in two very different books",
+        sub = "Data from Gilhooly & Logie, 1980")
+
+#####
+##### Find out which word that circle represents
+#####
+#      Use max() to find the highest AOAMean for words in alice (should be 6.11)
+#      Use a condition (e.g., ==, %in%) to find the word(s) with AOAMean score 6.11
+#      Find that/those word(s) with AOAMean score 6.11 that occurs in alice
+
+
+# One way to do it -- two to three steps:
+max(d$AOAMean[d$inAlice == TRUE])  # Find the max AOAMean for words in alice
+d$Word[d$AOAMean == 6.11]  # See what words have that score
+d$Word[d$AOAMean == 6.11] %in% tolower(alice)  # See which ones are in alice
+
+# Or one step:
+d$Word[which((d$AOAMean == max(d$AOAMean[d$inAlice == TRUE])) & (d$Word %in% tolower(alice)))]
+
+# Broken down:
+d$Word[     # open bracket to restrict row(s)
+    which(  # find row number with some condition(s)
+       (d$AOAMean == max(d$AOAMean[d$inAlice == TRUE]))  # max of alice AOAMean (6.11)
+       &       # Boolean AND (add second requisite condition)
+       (d$Word %in% tolower(alice))   # word has to appear in alice
+	)  
+]       
+
+# There are many other ways to do the above.
+
+
+#####	
+##### Now do the following (first try it yourself; 
+##### then you can check against the answers provided at the end):
+#####
+
+# 1. Find the word in alice with the lowest AOAMean 
+# 2. Find the frequency count (aliceCount) and rate (aliceRate) of that word in alice 
+#          frequency count - how many times that word occurs in alice
+#          frequency rate - the percentage of times that word occurs in alice
+# 3. Find the frequency count (mobyCount) and rate (mobyRate) of that word in moby
+# 4. Calculate the possibility of the observed alice count for that word, 
+#    given the rate in moby
+#       4.1. use dbinom(x, n, p)
+#       4.2. use dpois(x, lambda)
+#
+#      Key: x -- observed frequency count in sample
+#           n -- population size of sample
+#           p -- frequency rate of the data being compared to
+#           lambda = n * p
+#
+#      * FOR A REVIEW OF DBINOM() AND DPOIS(), CHECK OUT:
+#        Feb12.Rhistory  and  Section_Week4.txt  on bCourses
+#
+# 5. Now calculate the sum of probabilities of the observed alice count OR LOWER,
+#    given the rate in moby
+#       5.1. use pbinom(x, n, p)
+#       5.2. use ppois(x, lambda)
+# 6. Now calculate the sum of probabilities of HIGHER than the observed alice count,
+#    given the rate in moby
+#       6.1. use 1-pbinom(x, n, p)
+#       6.2. use 1-ppois(x, lambda)
+
+
+
+###
+### Answers to the exercise
+###
+
+### 1. 
+d$Word[which((d$AOAMean == min(d$AOAMean[d$inAlice == TRUE])) & (d$Word %in% tolower(alice)))]
+# "water"
+
+### 2. 
+aliceCount <- sum(tolower(alice) == "water")
+# 4 -- frequency count in alice
+
+aliceRate <- aliceCount / length(alice) 
+# 0.0001466867 -- frequency rate in alice
+
+### 3. 
+mobyCount <- sum(tolower(moby) == "water")
+# 169 -- frequency count in moby
+
+mobyRate <- mobyCount / length(moby)
+# 0.0007824291 -- frequency rate in moby
+
+### 4. 
+dbinom(aliceCount, length(alice), mobyRate)
+# 4.653178e-06
+
+dpois(aliceCount, length(alice) * mobyRate)  # note multiplication
+# 4.678563e-06
+
+### 5.
+pbinom(aliceCount, length(alice), mobyRate)
+# 5.659452e-06
+
+ppois(aliceCount, length(alice) * mobyRate)
+# 5.691112e-06
+
+### 6.
+1 - pbinom(aliceCount, length(alice), mobyRate)
+# 0.9999943
+
+1 - ppois(aliceCount, length(alice) * mobyRate)
+#  0.9999943

@@ -1,0 +1,254 @@
+# Ling C160 / CogSci C140, Spring 2015
+# Week 3 Section
+# 2/5 and 2/6/2015
+
+################
+### Contents ### 
+################
+##
+## 1. Frequency tables
+## 2. Plots
+##    2.1. Superimposing a second plot on another
+##    2.2. Most common plotting problems in HW1
+##        2.2.1. Axis parameters          
+##            2.2.1.1. Tick marks
+##            2.2.1.2. Adjusting axis length
+##            2.2.1.3. Forcing 0 on y-axis to start on x-axis in barplots
+##               *$* Creating a box (and making sure it covers intended area)
+##            2.2.1.4. Label orientation
+##            2.2.1.5. Custom axis labels
+## 3. For loops (intro)
+## 4. Feeling adventurous?
+##
+################
+
+
+### --- 1. Frequency tables --- ###
+### use table() over a vector
+
+# Review: create frequency tables of words in moby and alice
+
+library(languageR)
+
+mobyFq <- table(moby)
+aliceFq <- table(alice)
+head(mobyFq)   # check first 6 items
+tail(aliceFq)  # check last 6 items
+
+# Create frequency tables of length of words in moby and alice
+
+table(nchar(moby))
+table(nchar(alice))
+
+
+### --- 2. Plots --- ###
+
+# Make a couple of barplots of word lengths and their frequency in 
+# moby and alice, depicting the length of word *types*
+
+# First create the barplot for length of words in moby:
+
+barplot(table(nchar(moby))), main = "How many words of each length?",
+xlab = "Length in letters",
+ylab = "Count")
+
+
+### --- 2.1. Superimposing a second plot on another --- ###
+
+# Now superimpose ("add = T") a barplot showing the length of words in alice
+barplot(table(nchar(alice)), add = T, col = "blue")
+
+# Add legend
+legend(locator(1), fill = c("blue", "grey"), legend = c("alice", "moby"))
+
+
+### --- 2.2. Most common plotting problems in HW1 --- ###
+
+### NOTE: The following examples are all demonstrated on barplot(). 
+### What the following functions and parameters actually do to the plot
+### could vary depending on the plot function.
+
+### --- 2.2.1. Axis parameters --- ###
+### axis(), xlim, and ylim
+
+# To customize your axes, suppress axis drawing first
+# Use xaxt="n" or yaxt="n":
+
+barplot(table(nchar(moby)), main = "How many words of each length?",
+xlab = "Length in letters",
+ylab = "Count",
+yaxt="n")        # y-axis is not drawn
+
+axis(2) # add y-axis (on the left)
+        # axis(1) adds x-axis (at the bottom)
+        # axis(3) adds x-axis (on top)
+        # axis(4) adds y-axis (on the right)
+
+
+### --- 2.2.1.1. Tick marks --- ###
+### axis(at=, tick=)
+
+# Redraw moby barplot
+barplot(table(nchar(moby)), main = "How many words of each length?",
+xlab = "Length in letters",
+ylab = "Count",
+yaxt="n")        # y-axis is not drawn
+
+# Add y-axis with tick marks at specified intervals
+axis(2,                     # 2 = y-axis on left side
+at=seq(0,50000,by=10000))   # specify tick mark locations,
+                            # sequence of numbers from 0 to 50k, at intervals of 10k
+
+# (Try using seq() by itself)
+seq(5,20,by=5)
+
+# But tick mark 50000 is not showing, why?
+# Check the max number of words for any word length type in moby
+
+max(table(nchar(moby)))   
+# returns 48927
+# ** The barplot by default sets the max of the y-axis data as the upper edge **
+
+
+### --- 2.2.1.2. Adjusting axis range --- ###
+### xlim and ylim parameters
+
+# To override the default on the y-axis range (0 to max of y-axis data)
+# specify the ylim parameter:
+
+barplot(table(nchar(moby)), main = "How many words of each length?",
+xlab = "Length in letters",
+ylab = "Count",
+ylim=c(0,50000))    # y-axis now starts at 0 and ends at 50000
+
+
+### --- 2.2.1.3. Forcing 0 on y-axis to start on x-axis in barplots --- ###
+
+# You may have noticed that specifying ylim forced 0 to start at the x-axis
+# Compare
+
+barplot(table(nchar(moby)))                   # 0 starts above the x-axis
+barplot(table(nchar(moby)), ylim=c(0,50000))  # 0 starts at the x-axis
+
+# NOTE: this may not work on other plots (e.g., plot())
+
+
+### --- *$* Creating a box (and making sure it covers intended area) --- ###
+
+box()  # simple
+
+# Basically, if you set the ylim (and xlim) parameters (see above), the box will
+# wrap around those parameters exactly (at least in barplots)
+
+
+### --- 2.2.1.4. Label orientation --- ###
+### las paramenter
+
+barplot(table(nchar(moby)))         # default: x-axis horizontal, y-axis vertical
+barplot(table(nchar(moby)), las=1)  # x- and y-axis horizontal
+barplot(table(nchar(moby)), las=2)  # x-axis vertical, y-axis horizontal
+barplot(table(nchar(moby)), las=3)  # x- and y-axis vertical
+
+# The las parameter can also be added to axis():
+
+barplot(table(nchar(moby)), yaxt="n")  # don't draw y-axis
+axis(2, las=2)                         # draw y-axis with labels horizontal
+
+
+### --- 2.2.1.5. Custom axis labels --- ###
+
+### names.arg parameter for x-axis
+
+barplot(table(nchar(moby))[1:5],    # limit to first 5 items in table
+names.arg=c("A","B","C","D","E"))   # custom labels for x-axis bars
+
+### labels parameter in y-axis()
+
+# Let's plot percentage (out of entire moby) instead of 
+# just word counts on the y-axis:
+
+barplot(table(nchar(moby))/length(moby),
+main="Percentage of words of each length in moby",
+xlab="Length in letters",
+ylab="Percentage",
+ylim=c(0,0.25),      # set y-axis range
+yaxt="n")            # don't draw y-axis yet
+
+# Add y-axis with customized labels:
+axis(2,                                         # y-axis on the left
+at=seq(0,0.25,by=0.05), 
+las=2,                                          # y-axis labels horizontal
+labels=c("0%","5%","10%","15%","20%","25%"))    # custom labels with % added
+
+
+### --- 3. For loops (intro) --- ###
+
+### for(i in [vector/table/sequence/etc.]){[some action]}
+
+# For loops can save you time in doing some function over and over
+# again on all items of a vector/sequence/list
+
+# Example 1
+# Print out the word counts in table(nchar(moby)) one by one:
+
+for(i in table(nchar(moby))) {   # for each item in table(nchar(moby))
+    print(i)                     # print that item
+}                                # note curly brackets surrounding the print function
+
+# You can use any other letter/word for "i", it's just a placeholder:
+
+# Example 2
+cheeses <- c("blue", "cheddar", "munster")
+for(cheese in cheeses){        # note singular and plural differences
+    print(cheese)
+}
+
+
+
+### --- 4. FEELING ADVENTUROUS? --- ###
+
+# Now something where a "for" loop can be very useful in R:
+# Imagine you want to do 6 similar plots 
+# but don't want to type 6 separate plot() commands
+
+par(mfrow=c(2,3))    # First create 6 plotting areas in graphics window
+                     # c(2,3) means 2 rows and 3 columns
+
+# Now create 6 barplots featuring 6 different words: a, an, the, this, that, these
+# For each word/barplot, have two bars side by side showing the percentage of occurence
+# of the word in alice and in moby
+
+# Create data frames of frequency tables in percentages
+aliceD <- data.frame(table(alice)/length(alice))
+mobyD <- data.frame(table(moby)/length(moby))
+
+# Rename column names
+colnames(aliceD) <- c("Word", "aliceFq")
+colnames(mobyD) <- c("Word", "mobyFq")
+
+# Create a vector of the 6 words
+words <- c("a","an","the","this","that","these")
+
+# Shrink the data frames to contain only these 6 words and their frequencies
+aliceD <- aliceD[aliceD$Word %in% words,]	# specify the rows, but get all columns
+mobyD <- mobyD[mobyD$Word %in% words,]		# grab only the rows that are one of the 6 words
+
+aliceD  # check them out
+mobyD
+
+# Merge the two data frames  *NEW FUNCTION*
+novelsD <- merge(aliceD, mobyD, by.x="Word", by.y="Word")  
+				# by.x and by.y indicate the columns that are to be merged
+				# in the new data frame
+
+novelsD  # check what it looks like
+
+# Now plot:
+
+for(i in 1:6){                          # for each number in 1-6
+    barplot(as.matrix(novelsD[i,2:3]), 	# plot the two freqs of the Word in that row
+	names.arg=c("alice", "moby"),   # name the bars in the x-axis by the novel name
+	xlab="Novel", 
+	ylab="Frequency", 
+	main=novelsD[i,1])              # make the Word of the row the title
+}

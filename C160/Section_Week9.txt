@@ -1,0 +1,318 @@
+# Ling 160 / CogSci C140, Spring 2015
+# Week 9 Section: REVIEW
+# 3/19 and 3/20/2015
+
+################
+### Contents ###
+################
+###
+### 0. Basic concepts
+###     0.1. Distribution of the data - using density plots
+###     0.2. Normality & probability
+###     0.3. Population and samples
+###     0.4. Know your data!
+###
+### 1. T-tests
+###
+### 2. Linear regression models
+###
+### 3. Nonlinear regression models (adding a quadratic term)
+###
+### 4. Mini-review of R
+###     4.1. Basic data types -- numeric, character, factor
+###     4.2. Other -- objects, functions, arguments/parameters of functions
+###     4.3. Object types -- vector, data frame, table
+###     4.4. Functions
+###         4.4.1. Directory and workspace
+###         4.4.2. Data manipulation
+###         4.4.3. Plotting
+###
+################
+
+library(languageR)
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 0. Basic/central concepts ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+###     0.1. Density plots 
+#               - to check the distribution of your data (e.g., if it is normal or not)
+#               - use plot(density())
+#               - all the area under the line added together should equal 100% (of the data)
+###     0.2. Normality
+#               - when the distribution of a group of observations on a density plot
+#                 has only one peak and both sides of the peak are symmetrical
+#               - is an important concept because a lot of statistical methods rely on an
+#                 assumption of normality or use normality as a diagnostic (e.g., normality
+#                 of the distribution of residuals in linear regression models is a good thing)
+###     0.3. Population and samples
+#               - see explanations in two-sample t-test example
+###     0.4. Know your data!
+#               - always check the distribution of your data, the type of data you have, etc.
+#                 before you do anything, it will help you decide what tests are appropriate,
+#                 what kinds of hypotheses are reasonable, and sometimes why things go wrong 
+#                 when you are doing something in R and it gives you an unexpected error message.
+
+### ~~~~~~~~~~ ###
+### 1. T-tests ###
+### ~~~~~~~~~~ ###
+
+c <- read.table('crawford2004tables1_3.txt', header=T)
+c$ALLmean <- (c$NJmean + c$NCmean + c$TXmean)/3
+
+c$Word <- tolower(c$Word)
+c$inAlice <- c$Word %in% tolower(alice)
+c$inMoby <- c$Word %in% tolower(moby)
+
+## One-sample t-test ##
+# Compare the ALLmean scores for words occurring in alice (the "sample")
+# to the average of all the ALLmean scores (the "population")
+
+t.test(c$ALLmean[c$inAlice==TRUE], mu=mean(c$ALLmean))
+
+## Two-sample t-test ##
+# Compare the ALLmean scores between alice and moby - is one novel significantly
+# more "masculine/feminine" than the other?
+
+t.test(c$ALLmean[c$inAlice==TRUE], c$ALLmean[c$inMoby==TRUE])
+
+# Note: the null hypothesis is best described in one of two ways:
+#     1. The two *samples* are drawn from the same *population*
+#     2. The true mean of the alice sample and the true mean of the moby sample are equal 
+#            (i.e. their difference is 0 -- we check the 95% confidence interval to see 
+#             if 0 is included; if it is included, we CANNOT reject the null hypothesis)
+#     ** Avoid describing the two samples/groups of observations as "populations" **
+#     ** "True mean" refers to the mean of the original population that a sample comes from
+#     ** When running a t-test, we assume that the original population of each sample follows
+#        a normal distribution (specifically, a t-distribution), and that's why we need to
+#        make sure each sample itself has a normal distribution as well. If it is not normal,
+#        we use the Wilcoxon Test (wilcox.test())
+
+
+## Report the results of your t-test:
+
+# means and standard deviations of each group of observations/samples
+#     - use mean() and sd()
+# degrees of freedom
+# associated p-value
+# alpha level / significance level
+# the inference drawn
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 2. Linear regression models ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+english.lm <- with(english, lm(RTlexdec ~ Familiarity))
+summary(english.lm)
+
+# -> Is Familiarity a significant predictor of RTlexdec? 
+#      - look at the associated p-value for Familiarity
+#      - do NOT look at the p-value at the very bottom of the output
+#      - the p-value at the very bottom is for the entire model (not whether a predictor is significant)
+#      - the p-value at the very bottom is for testing whether the model is better than having no model
+# -> What is the direction of the relationship? 
+#      - look at the coefficient/beta-estimate
+# -> What is the degree of correlation?
+#      - use cor(x,y) -- cor(english$RTlexdec, english$Familiarity)
+# -> What is the proportion of variability explained by the model?
+#      - look at the Multiple R-squared
+#      - the degree of correlation = squareroot of the Multiple R-squared
+
+english.lm3 <- with(english, lm(RTlexdec ~ Familiarity + WrittenFrequency + AgeSubject))
+summary(english.lm3)
+
+# We can see this new model is better by looking at:
+#   1. the Multiple R-squared and that it is higher (than a previous model)
+#   2. that the new predictor(s) you introduced have a significant associated p-value
+#   3. by checking out the distribution of the residuals -- use plot(density(resid(english.lm3)))
+#           best-case scenario: i. the mean of the residuals (and its peak) is at x=0
+#                               ii. they are normally distributed (one peak and symmetrical on both sides)
+#                                   (so, min and max are equally apart from 0)
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 3. Nonlinear regression models (adding a quadratic term) ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+english.lm4 <- with(english, lm(RTlexdec ~ Familiarity + WrittenFrequency + 
+                    I(WrittenFrequency^2) + AgeSubject))
+summary(english.lm4)
+
+# To see whether you want to try and add a quadratic term, use lines(lowess()):
+
+with(english, plot(Familiarity, RTlexdec))
+with(english, lines(lowess(Familiarity, RTlexdec), col="blue"))
+
+with(english, plot(WrittenFrequency, RTlexdec))
+with(english, lines(lowess(WrittenFrequency, RTlexdec), col="blue"))
+
+# If there is a noticeable bend or curve in the line, that is a good reason
+# for checking out the quadratic term of a predictor as another predictor
+# variable. In this case, both the lowess() lines for Familiarity and 
+# WrittenFrequency indicate that it's worth adding quadratic terms to
+# the model to see if they might be additional significant predictors that
+# would improve the model.
+
+# Remember, the quadratic term requires I() and ^2:  I(WrittenFrequency^2)
+
+english.lm5 <- with(english, lm(RTlexdec ~ Familiarity + WrittenFrequency + 
+                    I(WrittenFrequency^2) + I(Familiarity^2) + AgeSubject))
+summary(english.lm5)  
+
+# I(Familiarity^2) is a good predictor and the model is improved (increased Multiple R-squared)
+
+
+### ~~~~~~~~~~~~~~~~~~~ ###
+### 4. Mini-review of R ###
+### ~~~~~~~~~~~~~~~~~~~ ###
+
+###     4.1. Basic data types -- numeric, character, factor
+
+is.numeric(english$RTlexdec)
+is.character("orange")
+is.factor(english$AgeSubject)
+
+is.factor(english$Word)  # Returns TRUE!
+english$Word <- as.character(english$Word)  # Convert to character
+is.factor(english$Word)  # Now returns FALSE
+
+# parallel to as.character(), there are also as.numeric() and as.factor() functions
+
+
+###     4.2. Other -- objects, functions, arguments/parameters of functions
+
+## Objects
+# both word and d below are "objects" -- they store some data that you assign to it
+
+word <- "food"
+d <- data.frame(1:5, 6:10)
+
+## Functions
+# functions in R always have some name followed by parentheses
+# the parentheses may have nothing in them (e.g., getwd()), or may
+# require arguments (e.g., lm(y~x) requires at least two vectors) 
+# and have optional parameters (e.g., header in read.table('file.txt', header=T)). 
+# Parameters usually have a default if you don't specify it (in the case of read.table(), the default
+# is to not treat the first row in the file as column names).
+
+getwd()  # gives you your current working directory
+sum(x)   # requires a vector of numeric values
+t.test(x, mu=)   # the one-sample t-test requires a vector of numeric values + one numeric value)
+
+
+###     4.3. Object types -- vector, data frame, table (3 we have seen so far)
+
+# Vectors - a collection of data items in a linear sequence
+
+bands <- c("Grizzly Bear", "Bear's Den", "My Morning Jacket")
+
+# Data frames - a collection of (columns of) vectors in sequence, 
+#             - where data can be accessed by column name, or by row and column indexing
+
+d <- data.frame(Words=c('a', 'an', 'the'), Freq=c(980, 84, 790))
+
+# Table - collection of data items in sequence, in key-value fashion
+#       - data can only be accessed through indexing or by key
+
+aliceFq <- table(tolower(alice)
+aliceFq[1]    # by indexing
+aliceFq['*']  # by key: '*' is the key, 60 is the value
+aliceFq[1] == aliceFq['*']  # Returns TRUE
+
+
+###     4.4. Functions
+###         4.4.1. Directory and workspace
+
+getwd()  # show working directory
+setwd("/folder/path/")   # change working directory
+dir()    # list all items in working directory
+ls()     # list all objects currently in workspace
+remove() # remove objects in workspace
+  
+
+###         4.4.2. Data manipulation
+
+head(english)
+head(alice)
+tail(english)
+tail(alice)
+
+nchar(alice)   # returns a vector of word lengths
+length(alice)  # only for vectors
+ncol(english)  # for data frames
+nrow(english)  # for data frames
+dim(english)   # returns ncol and nrow, respectively
+summary(english)   # note: summary() can be used over many different data types
+
+which(alice=="good")  # returns index numbers of where the word "good" is found in alice
+which(english$Word == "doe")  # returns row numbers of where "doe" is found in english$Word
+
+sample(alice[1:5])  # scrambles the first 5 words in alice
+sample(alice, 5)    # randomly picks 5 words in alice
+
+numbers = c(4,9,10,32,84)
+sum(numbers)
+min(numbers)
+max(numbers)
+mean(numbers)
+median(numbers)
+sd(numbers)      # standard deviation
+
+log(1024)      # log-transform
+exp(6.931472)  # exponential-transform (reverse of log-transform)
+
+letters <- c('a', 'b', 'c', 'd', 'e')  # concatenate items into a vector
+d <- data.frame(Letters=letters, Numbers=numbers)  # create data frame from vectors
+t <- table(tolower(alice))  # create (frequency) table out of vector
+
+sort(letters, decreasing=T)   # sorting a vector
+d <- d[sort(d$Letters, decreasing=T),]  # sorting a data frame by rows
+
+er <- merge(english, ratings, by.x="Word", by.y="Word")
+er <- merge(english, ratings, by="Word")
+
+# dbinom(x, n, p) -- probability of x (successes) given a population of n with a probability of success of p
+#                 (e.g., probability of getting 5 heads in 10 coin tosses where there's a 50% chance of getting heads)
+# pbinom(x, n, p) -- sum of probabilities of success of 0:x
+# dpois(x, lambda) -- same as above except Poisson distribution instead of binomial distribution
+# ppois(x, lambda) -- lambda = n*p in the binom functions
+
+dbinom(5, 10, 0.5)
+pbinom(5, 10, 0.5)
+dbinom(5, 5)  # lambda = n*p = 10*0.5 = 5
+pbinom(5, 5)
+
+# Refer to Mar 5-17 Class scripts and Weeks 7 and 8 section scripts for
+# t.test(), wilcox.test(), lm(), and related functions
+
+
+###         4.4.2. Plotting (a small summary)
+
+### Refer to Plots.pdf on bCourses for more
+
+## Setting the plotting space
+
+par(mfrow=c(2,3)  # create 2 rows of 3 columns of plotting spaces (6 total)
+
+## plot()
+
+plot(english$Familiarity, english$RTlexdec)
+
+# Starting with an empty plot (and adding points later)
+
+plot(english$Familiarity, english$RTlexdec, type="n")
+with(english, points(Familiarity[AgeSubject=='young'], 
+                     RTlexdec[AgeSubject=='young'], col="blue"))
+with(english, points(Familiarity[AgeSubject=='old'], 
+                     RTlexdec[AgeSubject=='old'], col="red"))
+
+## 3d plots
+
+library(rgl)
+plot3d(1:nrow(english), english$Familiarity, english$RTlexdec)
+
+# Density plots
+
+plot(density(english$RTlexdec))
+
+# Refer to Plots.pdf on bCourses for much more

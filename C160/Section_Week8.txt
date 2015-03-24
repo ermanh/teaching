@@ -1,0 +1,184 @@
+# Ling 160 / CogSci C140, Spring 2015
+# Week 8 Section
+# 3/12 and 3/13/2015
+
+################
+### Contents ###
+################
+###
+### 1. --> Simple linear regression           [y ~ x] one numeric predictor  
+###      1.1. Reading summary(lm()) output and some basic terminology
+### 2. --> Multiple linear regression         [y ~ x + z] two (or more) numeric predictors
+### 3. One-way ANOVA (analysis of variance)   [y ~ A] one factorial predictor
+### 4. Two(multi)-way ANOVA (analysis of variance)   [y ~ A + B] two (or more) factorial predictors
+### 5. --> ANCOVA (analysis of covariance)    [y ~ A + x] numeric and factorial predictors
+###
+###       (---> in this section, we only cover 1., 2., and 5.)
+###
+### 6. Questions on HW3
+### 7. plot3d() and points3d() [library(rgl)]  # Time-permitting
+### 8. Questionnaire (next week sections + OH)
+###
+################
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 1. Simple linear regression [y ~ x] ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+# what is RTlexdec ?
+# the average amount of time where participants decide whether the word is a real word or not
+# note: these numbers are log-transformed
+
+plot(english$Familiarity, english$RTlexdec)
+
+english.lm <- with(english, lm(RTlexdec ~ Familiarity))
+english.lm <- lm(english$RTlexdec ~ english$Familiarity)  # same as above
+
+english.lm  # remember that the lm() function by itself only gives you coefficients
+
+abline(english.lm, col="blue")  
+# same as -- abline(with(english, lm(Familiarity ~ RTlexdec)), col="red")
+
+summary(english.lm) # see all statistical information on the linear model
+
+# Call:
+# lm(formula = RTlexdec ~ Familiarity)
+# 
+# Residuals: <------------------------------------ residuals
+#      Min       1Q   Median       3Q      Max 
+# -0.49212 -0.11285 -0.00596  0.10569  0.65072 
+# 
+# Coefficients: <----------------------------------------- beta-estimates
+#              Estimate Std. Error t value Pr(>|t|)     <---- p-value from t-test 
+# (Intercept)  6.780397   0.007178  944.59   <2e-16 ***  <--- t-test compares 6.78 to 0
+# Familiarity -0.060676   0.001810  -33.52   <2e-16 ***  <--- t-test compares -0.06 to 0
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.1406 on 4566 degrees of freedom
+# Multiple R-squared:  0.1975 <---,    Adjusted R-squared:  0.1973 --- Multiple R-squared
+# F-statistic:  1124 on 1 and 4566 DF,  p-value: < 2.2e-16
+
+
+# Residuals = all the differences between the observed data and the regression line
+#     - ideally, we want the residuals to follow a normal distribution
+#     - plotting the density line is one way to check that
+#     - you can also examine the Max and Min (and the 1st and 3rd Quartiles), which
+#            should be equally distant from 0
+
+# Multiple R-squared = the % of variability/variance explained by the model
+#     - the closer the number is to 1, the better the model
+#     - as you add more predictor variables (performing multiple linear regression or ANCOVAs),
+#            you want to check that each new predictor variable has a t-test associated p-value 
+#            that is significantly low, that the multiple R-squared has been improved, and
+#            that the distribution of the residuals is more and more normal-looking
+
+
+cor(english$RTlexdec, english$Familiarity)  # degree of correlation
+
+### degree of correlation
+# - a negative number means the regression line is downward from left to right
+# - a positive number means the regression line is upward from left to right
+# - always between -1 and 1
+# - -1 or 1 means perfect correlation -- i.e., all data points lie exactly
+#                                              on the regression line
+# - the closer the number is to 0 (negative or positive), 
+#   the lower the correlation between the two variables
+
+
+### Check if the linear model is actually good for our data:
+
+## Look at the residuals:
+plot(density(resid(english.lm)))   
+     # for a good model, the residuals should have a normal-looking distribution
+abline(v=0)
+     # and the peak of the density line should ideally be at/very near 0
+
+## Look at the original data also:
+
+plot(density(english$RTlexdec))
+abline(v=mean(english$RTlexdec))
+
+plot(density(english$Familiarity))
+abline(v=mean(english$Familiarity))
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 2. Multiple linear regression [y ~ x + z] ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+with(english, plot(Familiarity + WrittenFrequency, RTlexdec))
+# same as plot(english$Familiarity + english$WrittenFrequency, english$RTlexdec)
+
+english$FW <- english$Familiarity + english$WrittenFrequency
+with(english, abline(lm(RTlexdec ~ FW), col="blue"))
+
+english.lm2 <- with(english, lm(RTlexdec ~ Familiarity + WrittenFrequency))
+summary(english.lm2)
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 5. ANCOVA (analysis of covariance) [y ~ A + x] ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+# Skip plotting (because factorial data is not numerical!)
+# and go straight to doing lm()
+
+# Add new factorial predictor variable, AgeSubject:
+english.lm3 <- with(english, lm(RTlexdec ~ Familiarity + WrittenFrequency + AgeSubject))
+summary(english.lm3)
+
+# Note the p-value of the t-test for the new predictor variable AgeSubject, and also
+# Multiple R-squared. The significantly low p-value tells us AgeSubject is a good
+# predictor variable, and the drastically increased R-squared tells us the model
+# is now able to explain a much large percentage of the variability of the data
+
+## Exercise: Now plot the density of the residuals of this new linear model. 
+##           Also draw a vertical line at 0.
+#     - Is it looking more normal now?
+#     - Is there only one peak, and is it at or close to 0?
+#     - Are both sides of the vertical line more symmetrical now also?
+
+
+## Exercise: Now try to add additional predictors that would improve the model.
+## Look at other columns in english (use head(english) or summary(english).
+## Try adding different predictor variables and see what they do. You can also
+## switch the order of the predictor variables and see if that changes anything.
+
+
+# adding RTnaming
+english.lm4 <- with(english, lm(RTlexdec ~ Familiarity + WrittenFrequency + 
+                    AgeSubject + RTnaming))
+summary(english.lm4)
+
+# adding FamilySize
+english.lm5 <- with(english, lm(RTlexdec ~ Familiarity + WrittenFrequency + 
+                    AgeSubject + RTnaming + FamilySize ))
+summary(english.lm5)
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 7. plot3d() and points3d() [library(rgl)] ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+library(rgl)
+
+with(english, plot3d(1:nrow(english), RTlexdec, WrittenFrequency, 
+                     type="n"))   # specify no points
+
+# add points - old subjects only:
+points3d(which(english$AgeSubject=="old"), 
+                english$RTlexdec[english$AgeSubject=="old"], 
+                english$WrittenFrequency[english$AgeSubject=="old"], col="blue")
+
+# add points - young subjects only:
+points3d(which(english$AgeSubject=="young"), 
+                english$RTlexdec[english$AgeSubject=="young"], 
+                english$WrittenFrequency[english$AgeSubject=="young"], col="red")
+
+# Note, once points are drawn on the 3D plot, you can't redraw
+# them (e.g., with a different color), so when checking out what 
+# is contributing to the different lumps of data, every time you
+# draw a new subset of the data, you may want to redraw a blank
+# 3D plot, otherwise overlapping data will not be redrawn with
+# the new color/shape/etc.

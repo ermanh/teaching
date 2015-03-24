@@ -1,0 +1,162 @@
+# Ling C160 / CogSci C140, Spring 2015
+# Week 2 Section
+# 1/29 and 1/30/2015
+
+################
+### Contents ### 
+################
+##
+## 1. SE1
+##     1.1. :
+##     1.2. sample()
+## 2. Creating vectors
+##     2.1. Accessing elements within vectors
+##     2.2. Expanding vectors
+##         2.2.2. by c()
+##         2.2.3. by indexing
+## 3. Creating data frames
+##     3.1. Accessing elements within data frames
+##         3.1.1. by column
+##         3.1.2. by row and column
+##     3.2. Expanding data frames
+##         3.2.1. by data.frame()
+##         3.2.2. by indexing
+##         3.2.3. by $ + new column name
+##     3.3. Changing column names
+## 4. Making a simple plot
+## 5. Saving your code
+##
+################
+
+
+### --- 1. SE1 --- ###
+
+## 1.1. :
+# Creates a sequence of numbers from the number to the left to the number
+# to the right at intervals of 1, inclusive of those numbers
+
+1:5       # returns 1 2 3 4 5
+1.1:5.1   # returns 1.1 2.1 3.1 4.1 5.1
+
+## 1.2. sample()
+
+sample(month.name)      # returns vector with elements randomly shuffled
+sample(month.name, 1)   # randomly pick 1 element out of the vector
+sample(month.name, 15)  # throws an error because there are only 12 months
+
+
+### --- 2. Creating vectors --- ###
+# Use c()
+
+linguists <- c("Mary Haas", "Franz Boas", "Dell Hymes")
+
+## -- 2.1. Accessing elements within vectors -- ##
+
+linguists[1]   # returns "Mary Haas"
+               # Note in R, indexing starts at 1 (not 0)
+
+			   
+## -- 2.2. Expanding vectors -- ##
+
+## 2.2.2. by c()
+
+linguists <- c(linguists, "Gail Jefferson")
+# reassign same vector object by concatenating extra item(s)
+
+linguists <- c(linguists, "Roman Jakobson", "Leonard Bloomfield")
+
+linguists  # check expanded vector
+
+## 2.2.3. by indexing
+
+# We know there are 6 items in the vector linguists now
+# Add new item to the slot after last:
+
+linguists[7] <- "Edward Sapir"
+
+# Or if you don't know which slot that is ahead of time:
+
+linguists[length(linguists) + 1] <- "Benjamen Lee Whorf"
+
+
+### --- 3. Creating data frames --- ###
+### data.frame()
+
+# Let's create a second vector first:
+linguistLength <- nchar(linguists)   # length of the linguists' names
+
+d <- data.frame(linguists, linguistLength)
+
+
+## -- 3.1. Accessing elements within data frames -- ##
+
+## by column
+# Since data frames are like a vector of vectors:
+
+d[1]   # yields the first column (the linguists) as a vector
+d[2]   # yields the second column (their name lengths) as a vector
+
+# You can also access them by column name specifically, using $:
+
+d$linguists        
+d$linguistLength
+
+## by row and column
+
+d[1,2]  # row 1, column 2
+
+
+## -- 3.2. Expanding data frames -- ##
+
+## 3.2.1. by data.frame()
+
+d <- data.frame(d, 1:8)   # similar to c() for expanding vectors
+d   # see column added
+
+## 3.2.2. by indexing
+
+d[length(d)+1] <- 9:16
+d   # check out column added
+
+## 3.2.3. by $ + new column name
+
+d$Random <- 17:24
+d   # check out column added
+
+## -- 3.3. Changing column names -- ##
+
+colnames(d)   # returns column names of data frame d as a vector
+colnames(d) <- c("Linguist", "NameLength", "Num1", "Num2", "Num3")
+
+d   # check out changes made
+
+
+### --- 4. Making a simple plot --- ###
+### plot(x, y, main="", ylab="", xlab="")
+
+plot(d$Num1,                    # x-axis data
+d$NameLength,                   # y-axis data
+main="Linguist Name Lengths",   # title on top
+xlab="Linguist Number",         # x-axis main label
+ylab="Name Length")             # y-axis main label
+
+
+### --- 5. Saving your session/code --- ###
+
+# Under "File" in the top menu
+
+# a. Save Workspace...
+# Generally NOT RECOMMENDED
+# It saves all the objects you have ever created in a session, etc.
+# If you've had a long session working with big pieces of data,
+# that could take up a lot of memory. If you keep saving your workspace
+# repeatedly and accumulate memory storage, performance of R and/or your
+# computer can be affected.
+
+# b. Save History...
+# Saves all commands you have ever entered in a session
+
+# c. Save to File...
+# Saves everything as it shows on your console in a session,
+# including all output of your command lines
+# (but does not save plots and graphics)

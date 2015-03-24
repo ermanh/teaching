@@ -1,0 +1,176 @@
+# Ling 160 / CogSci C140, Spring 2015
+# Week 7 Section
+# 3/5 and 3/6/2015
+
+################
+### Contents ###
+################
+##
+## I. T-tests
+##   0. Quick review of SE4
+##   1. Two-sample one-tailed (directional) t-test
+##
+## II. Reading t-test results
+##     a. null hypothesis vs. alternative hypothesis
+##     b. p-value
+##     c. 95% confidence interval
+##
+## III. Recap on types of t-tests
+##
+## IV. (Simple) linear regression
+##   2. lm()
+##   3. abline() - slope and intercept
+##   4. summary(lm())
+## 
+################
+
+##### ~~~~~~~~~~~~~~~~~~~~~~~ #####
+##### I.0 Quick review of SE4 #####
+##### ~~~~~~~~~~~~~~~~~~~~~~~ #####
+
+library(languageR)
+
+setwd('C:/Users/Herman/Documents/UC Berkeley/Spring 2015/C160 GSI/')
+v <- read.table('Valence.txt', header=T)
+head(v)
+
+v$inAlice <- v$Word %in% tolower(alice)
+v$inMoby <- v$Word %in% tolower(moby)
+
+# Two-sample two-tailed t-test (SE4)
+t.test(v$PValence[v$inAlice==TRUE], v$PValence[v$inMoby==TRUE])
+
+## Q: Why don't we want to do a paired t-test for SE4?
+
+
+##### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #####
+##### Two-sample one-tailed t-test #####
+##### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #####
+
+# Given what we know about alice and moby, we might hypothesis that
+# words in alice should in general be more pleasant than the words in moby
+
+# In such a case, we want to test whether this has a high probability of
+# being true, then we use a one-tailed (directional) t-test, because we are only 
+# checking to see if alice is greater than moby in the pleasantness score
+# (rather than just checking whether they are different from each other).
+
+# We specify the alternative hypothesis (that alice is greater than moby in pleasantness),
+# as "greater" (the other option is "less", which you would use if you put the moby data
+# first and the alice data second in the t.test()):
+
+t.test(v$PValence[v$inAlice==TRUE], v$PValence[v$inMoby==TRUE], alternative="greater")
+
+
+##### ~~~~~~~~~~~~~~~~~~~~~~~~~~ #####
+##### II. Reading t-test results #####
+##### ~~~~~~~~~~~~~~~~~~~~~~~~~~ #####
+##     a. null hypothesis vs. alternative hypothesis  
+##              # the results will indicate what the alternative hypothesis is
+##              # no matter what (i.e., it doesn't actually tell you whether the null
+##              # hypothesis or the alternative hypothesis is better
+##     b. p-value  # 0.05 is an arbitrary signficance level (also known as alpha)
+##     c. 95% confidence interval
+
+#         Welch Two Sample t-test
+# 
+# data:  v$PValence[v$inAlice == TRUE] and v$PValence[v$inMoby == TRUE]
+# t = 1.6055, df = 482.655, p-value = 0.05452
+# alternative hypothesis: true difference in means is greater than 0
+# 95 percent confidence interval:
+#  -0.005893858          Inf
+# sample estimates:
+# mean of x mean of y 
+#  5.574826  5.352309
+
+
+##### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #####
+##### III. Recap on types of t-tests #####
+##### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #####
+
+##### Two-tailed t-tests #####
+
+### One-sample t-test
+# t.test(x, mu=)
+
+### Two-sample t-test
+# t.test(x, y)
+
+### Paired (only for two-sample t-tests)
+# t.test(x, y, paired=T)
+
+### One-tailed t-tests
+# t.test(x, mu=, alternative=)
+# t.test(x, y, alternative=)
+# t.test(x, y, paired=T, alternative=)
+
+# can be one- or two-sample, paired or not
+# Add the parameter alternative="less" or alternative="greater"
+
+# We perform a one-tailed t-test if the researcher's hypothesis is that the mean of 
+# one sample is greater (or less) than another sample (or the population mean).
+
+# This is in contrast to two-tailed t-tests where we are simply asking whether
+# one sample is different from another sample (or the population), without
+# hypothesizing whether that difference is less or greater.
+
+
+##### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #####
+##### IV. (Simple) linear regression model #####
+##### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ #####
+
+# Take a look at the english data from languageR
+# page 30 in http://cran.r-project.org/web/packages/languageR/languageR.pdf
+
+e <- english[,1:7]
+head(e)
+summary(e)
+
+# We might reason that the more frequently something is written,
+# the more likely speakers would give it a higher familiarity score:
+
+plot(e$WrittenFrequency, e$Familiarity)
+
+# With this data, if we were asked to predict the score of a word's
+# familiarity based on the word's frequency, we can use a linear model
+# to calculate a line of best fit, plotted as follows
+
+abline(lm(e$Familiarity ~ e$WrittenFrequency), col="red")
+abline(lm(Familiarity ~ WrittenFrequency, data=e), col="red") 
+     # does the same thing
+     # note in the second command, you can specify the dataframe separately in data=
+	 
+# Note how lm() is used: lm(y ~ x) -- *** NOT lm(x ~ y) or lm(x, y)! ***
+# y = the dependent variable
+# x = the predictor variable
+
+
+### (Drawing) Intercept and Slope ###
+
+# abline(a, b)
+# a = intercept, b = slope
+
+abline(0, 1, col="blue") # intercept = 0, slope = 1
+
+## On a plot, a straight line can be defined by its intercept and slope
+
+# The intercept of that line is the y-axis value when x is 0
+# The slope is the increment of the y-value for every increase of 1 in x
+
+for(i in seq(0,12,by=0.5)){  # help us look at how the above description
+    abline(h=i, col="gray")  # is true -- anywhere on the blue line, x is always
+    abline(v=i, col="gray")  # equal to y
+}
+
+
+lm(Familiarity ~ WrittenFrequency, data=e)
+# the basic output here are the intercept and the slope, which is why
+# you can feed it as an argument in abline() (instead of a and b) and 
+# it still knows how to draw the regression line
+
+# But lm() actually contains more data:
+
+summary(lm(Familiarity ~ WrittenFrequency, data=e))  
+# note where the intercept and slope numbers are in this output
+
+
