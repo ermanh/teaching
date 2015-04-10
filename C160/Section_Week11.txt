@@ -1,0 +1,244 @@
+# Ling C160 / CogSci C140, Spring 2015
+# Week 10 Section
+# 4/9 and 4/10/2015
+
+################
+### Contents ###
+################
+###
+### 1. Sequential and/vs. Non-Sequential ANOVA  --  anova(lm()) vs. anova(ols()]
+###     1.1. summary(lm()) vs. anova(lm())  [SEQ]
+###     1.2. Difference between sequential and non-sequential?
+###     1.3. Interactions  --  * and :  [SEQ and NON-SEQ]
+###     == EXERCISE ==
+###
+###     [glimpses]
+###     1.4. Quadratic / polynomials (and restricted cubic splines)
+###               --  I(x^2) [SEQ]   vs.   pol(x, 2), rcs(x, 3)  [NON-SEQ)
+###     1.5. Partial effects plots  --  plot(Predict(ols()))  [NON-SEQ]
+###     1.6. Collinearity
+###
+################
+
+
+library(languageR)
+library(rms)  # for ols() function
+
+# If having problems with loading rms (or its dependencies), best way to install is:
+install.packages('rms')
+
+# Always remember to do the following two lines before doing ols(): 
+
+english.dd <- datadist(english)
+options(datadist="english.dd")
+
+# Note that if you modify your dataframe or use ols() on a different dataframe,
+# you will need to redo the above two lines with the new dataframe.
+
+
+english.lm <- lm(RTlexdec ~ AgeSubject + WordCategory, data=english) # Sequential
+english.ols <- ols(RTlexdec ~ AgeSubject + WordCategory, data=english) # Non-sequential
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 1.1. summary(lm()) vs. anova(lm())  [SEQUENTIAL] ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+summary(english.lm)  # Regression table
+anova(english.lm)    # ANOVA table
+
+### Regression table vs. ANOVA table ###
+# (a) summary(english.lm) vs. (b) anova(english.lm)
+
+# (a) Regression table - the p-values tell us whether the coefficients are 
+#                        significantly different from zero
+
+# (b) ANOVA table - the p-values tell us whether adding that predictor to the
+#                   model (which contains all other predictors above it) makes
+#                   any significant improvement to the model
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 1.2. Difference between sequential and non-sequential? ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+# anova(lm()) vs. anova(ols())
+
+
+anova(english.lm) # SEQUENTIAL
+
+# Analysis of Variance Table
+# 
+# Response: RTlexdec
+#                Df Sum Sq Mean Sq  F value    Pr(>F)    
+# AgeSubject      1 56.141  56.141 4564.996 < 2.2e-16 ***
+# WordCategory    1  0.173   0.173   14.078 0.0001776 ***
+# Residuals    4565 56.141   0.012                       
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+### The p-value for the row WordCategory (0.0001776) is from a comparison of the model
+### lm(RTlexdec ~ AgeSubject, data=english) with the model
+### lm(RTlexdec ~ AgeSubject + WordCategory, data=english) where WordCategory is added
+
+
+anova(english.ols) # NON-SEQUENTIAL
+
+#                 Analysis of Variance          Response: RTlexdec 
+# 
+#  Factor       d.f. Partial SS MS          F       P     
+#  AgeSubject      1 56.1411838 56.14118379 4565.00 <.0001
+#  WordCategory    1  0.1731309  0.17313092   14.08 2e-04 
+#  REGRESSION      2 56.3143147 28.15715735 2289.54 <.0001
+#  ERROR        4565 56.1412350  0.01229819          
+
+### Each p-value is a comparison of a model where all predictors are in the model vs. 
+### one without the predictor that the p-value is associated with.
+### E.g. the first p-value <.0001 tells us whether adding AgeSubject as a predictor to a model
+### that already has WordCategory makes that model significantly better.
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 1.3. Interactions  --  * and :  [SEQ and NON-SEQ] ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+# : -- this is interaction
+# * -- this is a shortcut -- a * b  means  a + b + a:b
+#                            a * b * c means a + b + c + a:b + b:c + a:c + a:b:c 
+
+# Compare the following:
+
+anova(ols(RTlexdec ~ AgeSubject : WordCategory, data=english)) # only shows the interaction
+anova(ols(RTlexdec ~ AgeSubject * WordCategory, data=english))
+
+# So AgeSubject * WordCategory = AgeSubject + WordCategory + AgeSubject:WordCategory
+
+
+### ~~~~~~~~ ###
+### EXERCISE ###
+### ~~~~~~~~ ###
+
+# 1. Find two more predictors (one categorical and one continuous) to add to this simple model:
+#        lm/ols(RTlexdec ~ AgeSubject + WordCategory + LengthInLetters, data=english)
+# 2. Do a sequential anova first. What are the results?
+# 3. Do a non-sequential anova. Do some of the predictors now seem to significantly contribute to the model?
+# 4. Play around with interactions. Can you find a significant interaction somewhere?
+
+# Feel free to merge another dataframe with english so you can use other predictors
+# e.g. valence.txt, adjectives.txt, data from the English Lexicon Project (elp), etc.
+
+
+# An example of a significant interaction:
+
+english.ols7 <- ols(RTlexdec ~ WrittenFrequency + WordCategory * NumberSimplexSynsets + LengthInLetters, data=english)
+plot(Predict(english.ols7))
+
+## NumberSimplexSynsets:
+# numeric vector with the log-transformed count of synonym sets in WordNet in which 
+# the word is listed.
+#    (In other words, it's probably the case that a word with a higher number of synonym sets
+#    is more polysemous)
+
+# Putting the NumberSimplexSynsets scores into bins so we can tabulate:
+english2 <- english
+english2$NSS2 <- 0
+english2$NSS2[english$NumberSimplexSynsets > 1] <- 1
+english2$NSS2[english$NumberSimplexSynsets > 2] <- 2
+english2$NSS2[english$NumberSimplexSynsets > 3] <- 3
+english2$NSS2[english$NumberSimplexSynsets > 4] <- 4
+english2$NSS2[english$NumberSimplexSynsets > 5] <- 5
+
+# Tabulate WordCategory and the bins:
+with(english2, xtabs(~ WordCategory + NSS2))
+
+# Note the different distributions between nouns and verbs.
+# There are more nouns than verbs for each bin except when the bin is 3 or 4, so it does look 
+# like there might be some significant relationship between WordCategory and NumberSimplexSynsets
+
+plot(Predict(english.ols7))
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 1.4. Quadratic / polynomials (and restricted cubic splines) ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+# Recall the quadratic term in (sequential) regression models.
+# Below is an example where we added a quadratic term for WrittenFrequency ( I(WrittenFrequency^2) ):
+
+english.lm7 <- lm(RTlexdec ~ WrittenFrequency + I(WrittenFrequency^2) + WordCategory, data=english)
+anova(english.lm7)
+
+# Review: When to use a quadratic term?
+
+with(english[english$AgeSubject=="young",], plot(RTlexdec ~ WrittenFrequency))
+with(english[english$AgeSubject=="young",], lines(lowess(RTlexdec~WrittenFrequency), col="blue"))
+
+# We add a quadratic term if the smoothed line seems to have a noticeable bend/curve
+# If there are more bends, we can add higher terms (e.g., I(WrittenFrequency^3))
+
+## For ols(), we use pol(x, 2) instead. 
+# Note also that pol(x, 2) is equivalent to x + I(x^2) -- that is, we don't need to
+# specify both the non-quadratic and the quadratic predictors separately when we use pol() in ols():
+
+english.ols7 <- ols(RTlexdec ~ pol(WrittenFrequency, 2) + WordCategory, data=english)
+anova(english.ols7)
+
+english.ols7 <- ols(RTlexdec ~ pol(WrittenFrequency, 3) + WordCategory, data=english)
+anova(english.ols7)
+
+## Restricted cubic splines (Baayen p.174-181) - rcs(x, 3)
+# - If trying out higher polynomials, rcs() is better because it won't overfit the data too much
+
+english.ols8 <- ols(RTlexdec ~ rcs(WrittenFrequency, 8) + WordCategory, data=english)
+anova(english.ols8)
+
+# NOTE: rcs(WrittenFrequency, 3) is analogous to pol(WrittenFrequency, 2), i.e., you need to +1 to do
+#       the rcs() equivalent of pol(). 
+# HOWEVER, rcs() and pol() have different calculations so the results of using
+#       one vs. the other will also be different. rcs() performs better than pol() for higher numbers
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 1.5. Partial effects plots  --  plot(Predict(ols()))  [NON-SEQ] ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+# plot(Predict(ols()))
+# - let's us look at each predictor and its relationship with the outcome (assuming
+#   all other predictors are constant, or in other words, already in the model)
+
+english.ols10 <- ols(RTlexdec ~ pol(WrittenFrequency, 2) + WordCategory, data=english)
+plot(Predict(english.ols10))
+
+# We see here that the polynomial manifests itself in the plot as a curved line;
+# if you don't use the polynomial in the model, we would see a straight line:
+
+english.ols11 <- ols(RTlexdec ~ WrittenFrequency + WordCategory, data=english)
+plot(Predict(english.ols11))
+
+
+### ~~~~~~~~~~~~~~~~~ ###
+### 1.6. Collinearity ###
+### ~~~~~~~~~~~~~~~~~ ###
+# Baayen pp.181-188
+
+# - High collinearity of predictors is bad for a model
+# - Collinearity means the predictors account for too much of the same parts of the variance of the data 
+# - So we want to check and make sure there is no or low collinearity
+
+collin.fnc(english, 7:12)$cnumber
+
+# In the above, 7:12 refers to the columns in the english dataframe that one would use
+# as predictors in a model. If your columns are not adjacent, you can use c(7,9,12), for example:
+
+collin.fnc(english, c(7,9,12))$cnumber
+
+# The $cnumber gives us the condition number.
+
+# If the condition number is < 6, there is no or low collinearity.
+# If it is around 15, there is medium collinearity.
+# If it is > 30, there is high collinearity and that is bad for the model.
+
+# To fix high collinearity, we should take away some of the overlapping predictors.
+
+# In other words, if two predictors capture the same parts/variance of the data, it's almost
+# like doubling up one predictor -- it's redundant and doesn't really help us build a good model to
+# explain the data.

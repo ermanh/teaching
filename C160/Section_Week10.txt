@@ -1,0 +1,244 @@
+# Ling C160 / CogSci C140, Spring 2015
+# Week 10 Section
+# 4/2 and 4/3/2015
+
+################
+### Contents ###
+################
+###
+### 1. Overview of tests
+###
+### 2. Chi-square test
+###     2.1. Extra info (only for interest, not required for course)
+###
+### 3. Pattern matching and extraction (grepping and regular expressions)
+###
+################
+
+
+### ~~~~~~~~~~~~~~~~~~~~ ###
+### 1. Overview of tests ###
+### ~~~~~~~~~~~~~~~~~~~~ ###
+
+# Test || # of variables/samples || types of variables/samples || R function(s)
+
+# t-test || 1+ || vector(s) of continuous data (x and (y or mu = mean of the population that x is compared to)) || t.test(x, y), t.test(x, mu=)
+# correlation || 2 || x, y -- both continuous || cor(x, y)
+# regression (linear) || 2+ || x - predictor, continuous; y - outcome, continuous || lm(y ~ x)
+# ANOVA || 2+ || A - predictor, categorical; y - outcome, continuous || lm(y ~ A)
+# ANCOVA || 3+ || A - predictor, categorical; x - predictor, continuous; y - outcome, continuous || lm(y ~ A + x)
+# chi-square test || 2(+) || A, B -- both categorical || chisq.test(xtabs(~ A + B))
+
+
+### ~~~~~~~~~~~~~~~~~~ ###
+### 2. Chi-square test ###
+### ~~~~~~~~~~~~~~~~~~ ###
+
+# Example
+
+library(languageR)
+summary(verbs)
+
+# RealizationOfRec = Realization of the recipient
+# AnimacyOfRec = Animacy of the recipient
+# AnimacyOfTheme = Animacy of the theme
+
+# more info on the study where the dataset "verbs" comes from:
+# http://web.stanford.edu/~bresnan/qs-submit.pdf
+# "Predicting the Dative Alternation"
+
+help(verbs)
+
+# The study looks at ditransitive verbs with two object arguments, 
+# where one is a theme (direct object)
+# and the other is a recipient (indirect object, also "dative" object, hence title of paper).
+
+# There are two ways to construct a sentence with this type of verbs:
+#   (i) V NP PP
+#   (ii) V NP NP
+#    V = verb; NP = noun phrase; PP = prepositional phrase
+
+# (i) I gave toys to the children.
+# 'toys' -- theme NP
+# 'to the children' -- recipient PP
+
+# (ii) I gave the children toys.
+# 'toys' -- theme NP
+# 'the children' -- recipient NP (not PP)
+
+# Crucial difference looked at between (i) and (ii) -- the recipient can be
+# realized as a PP (i) or an NP (ii).
+
+
+## Research question: Is there any way in which the choice between recipient PP
+## and recipient NP constructions can be predicted? 
+
+## Or, is the choice between the two constructions dependent on some other variable?
+## - for our purposes, let's say this other variable is the animacy of the recipient
+
+## Restated yet again: Is the syntactic realization of the recipient dependent on the
+## animacy of the recipient (or vice versa)?
+
+
+verbs.xtabs = xtabs(~ AnimacyOfRec + RealizationOfRec, 
+                    data = verbs[verbs$AnimacyOfTheme != "animate", ])
+
+     # NOTE: We restrict the data to only cases where the THEME is *inanimate*.
+     # We do this to take away an extra variable that might make our chi-square
+     # test unrealiable (recall in lecture that the front/back vowel distinction is
+     # not great because maybe the high/low vowel distinction could be a
+     # contributor to the distribution we see). We want to make sure there are no
+     # subcategories OR hidden variables at play. In this case, animacy of the 
+     # theme could be a significant hidden variable if we didn't restrict the data.
+
+
+verbs.xtabs
+
+#               RealizationOfRec
+# AnimacyOfRec   NP  PP
+#   animate      517 300
+#   inanimate    33  47
+
+
+chisq.test(verbs.xtabs)
+
+#    Pearson's Chi-squared test with Yates' continuity correction
+#
+# data:  verbs.xtabs
+# X-squared = 13.9948, df = 1, p-value = 0.0001833
+
+
+## When reporting the results of the chi-square test, we must include:
+#   - chi-square (X-squared)
+#   - degrees of freedom (df)
+#   - p-value
+
+# But for determining whether we reject/accept the null-hypothesis, we
+# primarily only need to look at the p-value (if it is below the significance
+# level, we can reject the null hypothesis).
+
+
+## Questions ##
+# a. What's the null hypothesis?
+# b. What's the alternative hypothesis?
+# c. What can we say about the (in)dependence between 
+#      the variables AnimacyOfRec and RealizationOfRec?
+
+
+## Answers ##
+#
+# a. Null hypothesis: The two variables are independent.
+#
+# b. Alternative hypothesis: The two variables are not independent.
+#
+# c. If p-value is below the significance level, we reject the null hypothesis in
+#    favor of the alternative hypothesis, that the two variables are dependent.
+#
+#    In other others, knowing the level of one variable can help you predict 
+#    the level of the other variable.
+#        (in our case, knowing that the recipient is animate (rather than inanimate), 
+#         we can say that it is more likely to be realized as an NP (rather than a PP))
+
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 2.1. Extra info on the chi-square test ###
+###                                        ###
+### -- NOT REQUIRED to know for the course ###
+### -- only for interest                   ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+# Plot of a series of probability distributions of chi-square
+
+x <- rchisq(100,5)
+plot(x, xlim=c(0,15), ylim=c(0,1), xlab="chi-square", ylab="probability", type="n",
+     main="Probability density of chi-square distributions")
+colors <- rainbow(11)
+colors <- c(colors[1:2], colors[4:11])
+for(i in 1:10){
+	curve(dchisq(x, df=i), col=colors[i], add=T)
+}
+legend_text <- paste("df =", 1:10)
+legend("topright", lty=1, col=colors, legend=legend_text)
+
+
+# x-axis is the chi-square
+# y-axis is probability
+#     (so, all the area below one line should add up to 100%)
+# each degree of freedom has its own associated chi-square probability distribution (10 shown in the plot)
+
+# So looking at our chisq.test(verbs.xtabs) results:
+# a ch-square of 13.9948 and df = 1, the p-value (0.0001833) is the
+# whole area to the right of 13.9938 on the x-axis below the red line
+# (sum of probabilities of a chi-sqaure of 13.9948 or higher)
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 3. Pattern matching and extraction       ###
+###       (grepping and regular expressions) ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+## ~~~ REFER TO GreppingHandout.pdf in bCourses/Files/Handouts/ ~~~ ##
+## ~~~ for more tips and some exercises                         ~~~ ##
+
+### substr(character_data, start, stop)
+### - gives you a part of a string
+
+substr('grand jury', 1, 3)   
+# Returns: 'gra'
+
+substr(moby, 1, 1)
+# Returns the first letter of each word in moby
+
+### grep(pattern, character_data)
+### - gives you the indices of the words (in a vector) that contain the pattern
+
+grep('donkey', 'donkey anaphora')
+# Returns: 1
+
+grep('donkey', moby)
+# Returns: 50402 50853
+
+moby[50402]
+
+# grep() is sensitive to regular expressions (symbols that represent 
+# something else for search/matching purposes). Here are a few useful ones:
+
+## . (any character except newline)
+grep('don.', moby)  
+unique(grep('don.', moby, value=T))
+
+## .* (any character except newline, zero or more times)
+grep('don.*', moby) 
+unique(grep('don.*', moby, value=T))
+
+## ^ (beginning of string)
+grep('^don.*', moby) 
+unique(grep('^don.*', moby, value=T))
+
+## + (1 or more)
+grep('^don.+', moby) 
+unique(grep('^don.+', moby, value=T))
+
+## ? (0 or 1)
+grep('^don.?', moby) 
+unique(grep('^don.?', moby, value=T))
+
+## $ (end of string)
+grep('^don.$', moby)
+unique(grep('^don.$', moby, value=T))
+
+## {min, max} -- specify the number of occurences of the character
+unique(grep("^.{4,4}ful$", moby, ignore.case=T, value=T))
+unique(grep("^.{4,8}ful$", moby, ignore.case=T, value=T))
+
+## [] -- character class, specify what character options in one character slot
+grep("[a-g]{8,10}", moby, value=T)  # gives you words that are 8-10 letters long 
+                                    # where each letter is a, b, c, d, e, f, or g
+
+# The above is equivalent to:
+grep("[abcdefg]{8,10}", moby, value=T)
+
+
+## ~~~ REFER TO GreppingHandout.pdf in bCourses/Files/Handouts/ ~~~ ##
+## ~~~ for more tips and some exercises                         ~~~ ##
