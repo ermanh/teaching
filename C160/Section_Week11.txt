@@ -1,5 +1,5 @@
 # Ling C160 / CogSci C140, Spring 2015
-# Week 10 Section
+# Week 11 Section
 # 4/9 and 4/10/2015
 
 ################
