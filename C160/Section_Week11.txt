@@ -6,7 +6,7 @@
 ### Contents ###
 ################
 ###
-### 1. Sequential and/vs. Non-Sequential ANOVA  --  anova(lm()) vs. anova(ols()]
+### 1. Sequential and/vs. Non-Sequential ANOVA  --  anova(lm()) vs. anova(ols())
 ###     1.1. summary(lm()) vs. anova(lm())  [SEQ]
 ###     1.2. Difference between sequential and non-sequential?
 ###     1.3. Interactions  --  * and :  [SEQ and NON-SEQ]
@@ -147,12 +147,15 @@ english2$NSS2[english$NumberSimplexSynsets > 3] <- 3
 english2$NSS2[english$NumberSimplexSynsets > 4] <- 4
 english2$NSS2[english$NumberSimplexSynsets > 5] <- 5
 
-# Tabulate WordCategory and the bins:
-with(english2, xtabs(~ WordCategory + NSS2))
+# Look at the means by WordCategory and the bins:
+tapply(english2$RTlexdec, list(english2$WordCategory, english2$NSS2), mean)
 
-# Note the different distributions between nouns and verbs.
-# There are more nouns than verbs for each bin except when the bin is 3 or 4, so it does look 
-# like there might be some significant relationship between WordCategory and NumberSimplexSynsets
+# Note the RTlexdec means between nouns and verbs come closer and closer
+# to each other as the synset (bins) increase (and RTlexdec decreases globally). 
+# The means for verbs are higher than for nouns from bins 0-2, but for bin 3, 
+# the verbs mean is smaller than the nouns mean. This seems to be an indication
+# of a possible interaction in play. The non-sequential anova results confirm
+# that the interaction is actually significant.
 
 plot(Predict(english.ols7))
 
