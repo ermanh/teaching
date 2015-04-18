@@ -1,0 +1,177 @@
+# Ling C160 / CogSci C140, Spring 2015
+# Week 12 Section
+# 4/16 and 4/17/2015
+
+################
+### Contents ###
+################
+###
+### 0. Reporting test results
+###
+### 1. tapply() vs. aggregate()
+### 
+### 2. Repeated measures ANOVA
+###      2.2. Example (Luka & Barsalou 2005)
+###           - exercise
+###                - error term (is only) for within-group
+###                - within-group vs. between-group
+###
+################
+
+library(languageR)
+
+### ~~~~~~~~~~~~~~~~~~ ###
+### 0. HW4 mini-review ###
+### ~~~~~~~~~~~~~~~~~~ ###
+
+# "Report the results of the chi-square(/etc.) test"
+
+# test(df) = test-value, p = p-value
+
+# Always include the original test statistic along with the degrees of freedom, then
+# the associated p-value.
+
+# e.g. Chi-square test           X^2(1) = 4.12, p = 0.02
+#      Repeated measures ANVOA   F1(1,19) = 5.32, p = 0.014; F2(1,19) = 10.98, p = 0.009
+#      T-test:                   t(23) = 1.32, p = 0.74
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 1. tapply() vs. aggregate() ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+english2 <- english[,c(1,4,5,30)] # Only columns RTlexdec, Word, AgeSubject, CV
+
+### tapply() ###
+### tapply(x, list(factor1, factor2...), function_over_x)
+
+with(english2, tapply(RTlexdec, list(AgeSubject, CV), mean))
+
+english2.tapply <- with(english2, tapply(RTlexdec, list(AgeSubject, CV), mean))
+class(english2.tapply)  # matrix
+
+#              C        V
+# old   6.660766 6.667946
+# young 6.439576 6.426877
+
+### aggregate() ###
+### aggregate(x ~ factor1 + factor2, data=dataframe, function_over_x)
+
+aggregate(RTlexdec ~ AgeSubject + CV, data=english2, mean)
+
+english2.aggregate <- aggregate(RTlexdec ~ AgeSubject + CV, data=english2, mean)
+class(english2.aggregate)  # data frame
+
+#   AgeSubject CV RTlexdec
+# 1        old  C 6.660766
+# 2      young  C 6.439576
+# 3        old  V 6.667946
+# 4      young  V 6.426877
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 2. Repeated measures ANOVA ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+# Luka, B.J. and L.W. Barsalou. 2005. Structural facilitation: Mere exposure effects
+# for grammatical acceptability as evidence for syntactic priming in comprehension.
+# Journal of Memory and Language 52: 436-459.
+
+# Code and data taken and adapted from Keith Johnson's book, Quantitative Methods
+# in Linguistics
+
+# Question: Does prior exposure to a syntactic structure affect grammaticality judgments?
+
+# (1) Highly grammatical:
+#        reading task     It was simple for the surgeon to hide the evidence.
+#      Repetition:
+#        identical        It was simple for the surgeon to hide the evidence.
+#        structural       It is difficult for Kate to decipher your handwriting.
+
+# (2) Moderately grammatical:
+#        reading task     There dawned an unlucky day.
+#      Repetition:
+#        identical        There dawned an unlucky day.
+#        structural       There erupted a horrible plague.
+
+# (see plot for experiment 4) - LukaBarsalou_Exp4.jpg on bCourses
+
+# What variables are involved in the grammaticality ratings?
+#      - Outcome -- RATING
+#      - Predictors -- GRAMMATICALITY (high or moderate)
+#                   -- REPETITION (identical or structural)
+#                   -- FAMILIARITY (new (first sentence shown) or old (second sentence shown))
+
+# What/who is the subject?
+#      - the research subject! the ones who were giving scores on the grammaticality of the sentences
+
+# What is the item?
+#      - the sentence(s)
+
+library(afex)
+
+subj <- read.table('LukaBars05Exp4_subj.txt', header=T)
+item <- read.delim('LukaBars05Exp4_items.txt')  # note: read.delim
+
+subj$SUBJ <- as.factor(subj$SUBJ)
+item$Item <- as.factor(item$Item)
+
+summary(subj) # NOTE the SUBJ column, each number refers to a research subject
+summary(item) # NOTE the Item column, each number refers to a particular sentence
+
+# For the repeated measures ANOVA, we need information on the subjects and the items;
+# usually, they would be ID numbers, so make sure they are treated as factor data in R
+# and not as numeric data.
+
+
+### Now, do a repeated measures ANOVA by subject and by item. ###
+
+# Sample function:  aov.car(Outcome ~ Pred1 * Pred2 + Error(Subject/(Pred1 * Pred2)), data=df)
+# Remember: The error term can be quite different between the by-subject and by-item tests.
+
+# The error term is only for within-group variation!
+
+# Examples of between-group and within-group (let's do by subject here):
+
+               # ---------- # ------------------------------ #
+#              | SEX        | AMOUNT OF GLUCOSE IN BLOOD     |
+#   # -------- # ---------- # ------------------------------ #
+#   | Subject  | M / F      | before / after drinking coffee |
+#   # -------- # ---------- # ------------------------------ #
+#   | for each | either/or  | both situations (or all if     |
+#   | subject  | (not both) |  there are more than 2 levels) |
+#   # -------- # ---------- # ------------------------------ #
+#              | between-   | within-group                   |
+#              | group      |                                |
+#              # ---------- # ------------------------------ #
+
+# For each subject, they cannot be both male and female --> between-group
+
+# For each subject, their sugar levels were measured both 
+#       before and after, not only before or only after --> within-group
+
+
+aov.car(RATING ~ GRAMMATICALITY * FAMILIARITY * REPETITION 
+        + Error(SUBJ/(GRAMMATICALITY * FAMILIARITY * REPETITION)),
+        data=subj)
+
+		# Note: all the predictor variables are within-group (within-subject) because each
+		# research participant encountered all types of the above levels of situations, i.e.,
+		# *each* participant encountered both highly and moderately grammatical sentences,
+		# *each* participant encountered both the new (first sentence) and the old (the repetition),
+		# *each* participant encountered both identical repetitions and structural repetitions.
+
+		# A possible between-group (between-subject) variable would be biological sex. Each
+		# participant can only be male OR female, not both.
+		
+aov.car(RATING ~ GRAMMATICALITY * FAMILIARITY * REPETITION
+        + Error(Item/FAMILIARITY), data=item)
+
+		# Note: by item, only FAMILIARITY is within-group (within-item) -- there are sentences
+		# that can appear both new (the first time) and old (the repetition)
+		
+		# GRAMMATICALITY is between-group (between-item) because *each* sentence can only be 
+		# highly grammatical or moderately grammatical, not both. 
+		
+		# Similarly, REPETITION is between-group (between-item) because *each* sentence will only
+		# show up once as either identical or structural, not both.
