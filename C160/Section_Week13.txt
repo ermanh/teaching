@@ -1,0 +1,141 @@
+# Ling C160 / CogSci C140, Spring 2015
+# Week 13 Section
+# 4/23 and 4/24/2015
+
+################
+### Contents ###
+################
+###
+### 1. Improving a model [demo/practice for homework]
+###      1.1. Things to always check            
+###            i.   p-values of predictors in sequential ANOVA 
+###                     -- anova(lm())
+###            ii.  multiple R-squared 
+###                     -- summary(lm())
+###            iii. p-values of predictors in non-sequential ANOVA
+###                     -- anova(ols())
+###            iv.  outliers / overly influential cases 
+###                     -- dffits + dfbetas
+###            v.   distribution of residuals 
+###                     -- summary(lm()) + plot(density(resid(lm())))
+### 
+### [last 15 minutes]
+### 2. Summary/review of tests (we've looked at since Spring Break)
+###
+################
+
+library(languageR)
+library(rms)
+
+gl <- read.table("gl_rate.txt", header=T)
+d <- merge(english, gl, by="Word")
+
+d.dd <- datadist(d)
+options(datadist="d.dd")
+
+### Step 1
+
+d2.lm <- lm(RTlexdec ~ CV + WrittenFrequency + LengthInLetters + Familiarity + ImagMean + WordCategory, data=d)
+anova(d2.lm)
+summary(d2.lm)
+
+d2.ols <- ols(RTlexdec ~ CV + WrittenFrequency + LengthInLetters + Familiarity + ImagMean + WordCategory, data=d, x=T)
+anova(d2.ols)
+
+
+### Step 2: Take out non-significant predictors
+
+d3.lm <- lm(RTlexdec ~ WrittenFrequency + Familiarity + ImagMean + WordCategory, data=d)
+anova(d3.lm)
+summary(d3.lm)
+
+d3.ols <- ols(RTlexdec ~ WrittenFrequency + Familiarity + ImagMean + WordCategory, data=d, x=T)
+anova(d3.ols)
+
+
+### Step 3: Plot dffits and find dfbetas
+
+dffits <- abs(resid(d3.ols, "dffits"))
+plot(dffits, type="h")
+
+dfbetas <-- which.influence(d3.ols)
+
+d[315,]
+plot(RTlexdec ~ WrittenFrequency, data=d)
+points(RTlexdec ~ WrittenFrequency, data=d[315,], col="blue")
+
+plot(RTlexdec ~ Familiarity, data=d)
+points(RTlexdec ~ Familiarity, data=d[315,], col="blue")
+
+
+### Step 4: Remove influential case(s) and refit model
+
+d4.lm <- lm(RTlexdec ~ WrittenFrequency + Familiarity + ImagMean + WordCategory, data=d[-315,])
+summary(d4.lm)
+anova(d4.lm)
+
+d4.ols <- ols(RTlexdec ~ WrittenFrequency + Familiarity + ImagMean + WordCategory, data=d[-315,], x=T)
+anova(d4.ols)
+
+# R's subtractive operation
+
+letters <- c('a', 'b', 'c', 'd', 'e')
+letters[-3]
+letters[-c(1,3,5)]
+
+
+### Step 5: WordCategory not great after all, so repeat Steps 3-4
+
+d5.lm <- lm(RTlexdec ~ WrittenFrequency + Familiarity + ImagMean, data=d[-315,])
+summary(d5.lm)
+anova(d5.lm)
+
+d5.ols <- ols(RTlexdec ~ WrittenFrequency + Familiarity + ImagMean, data=d[-315,], x=T)
+anova(d5.ols)
+
+
+### Step 6: Make sure to check the distrubition of the residuals
+### The more they follow a normal distribution, the better
+###      Best case scenario:
+###        - peak is at/around zero
+###        - both sides are symmetrical and have no bumps
+
+summary(d5.lm)
+plot(density(resid(d5.lm)))
+abline(v=0)
+
+
+### Reminder 1: Partial effects plots
+plot(Predict(d5.ols))
+
+### Reminder 2: Interactions
+# a * b = a + b + a:b
+# The * is a shorthand, the : is the actual interaction
+# We never use : in the lm() or ols() functions because as a rule, 
+#     when we use an interaction as a predictor, we want the original
+#     predictors, too. 
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 2. Summary review of new tests ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+# test | # of variables | types of variables | R function(s) - packages
+# chi-square test | 2+ | categorical | chisq.test(xtabs()) (or chisq.test(table()))
+# sequential ANOVA | 2+ | y - outcome, continuous; others - predictors, categorical or continuous | anova(lm())
+# non-sequential ANOVA | 2+ | same as sequential | anova(ols()) -- library(rms), df.dd <- datadist(df), options(datadist="df.dd")
+# repeated measures (and mixed) ANOVA | 2+ (with error term for within-group) 
+#                                     | y - outcome, continuous; others - predictors, categorical or continuous, with within-group variation
+#                                     | aov.car(y ~ x + z + Error(Subj_or_Item/(x + z))) -- library(afex)
+
+
+## Related functions for non-sequential ANOVA (ols()):
+# - Partial Effects Plot -- plot(Predict(ols()))
+# - quadratic terms/polynomials -- use "pol(WrittenFrequency, 2)"  [in ols()]
+#                                    or "rcs(WrittenFrequency, 3)" (yes, 3)  [in ols()]
+#                                  instead of "WrittenFrequency + I(WrittenFrequency^2)"  [in lm()]
+# - dffits <- abs(resid(ols(), "dffits"))
+# - dfbetas <- which.influence(ols())
+
+## Related functions for regression models in general:
+# - Collinearity -- collin.fnc(df, column numbers)$cnumber

@@ -1,0 +1,199 @@
+# Ling C160 / CogSci C140, Spring 2015
+# Week 14 Section
+# 4/30 and 5/1/2015
+
+################
+### Contents ###
+################
+###
+### 0. RRR Week - Office Hours -  Tu 12-2, 1-3, or 2-4
+###
+### 1. Warm-up review exercises
+###     1.1. R function calls
+###     1.2. Interpreting plots                [box-and-whiskers]
+###     1.3. Reading/interpreting test output  [linear regression]
+###     1.4. Deciding what test to use
+###
+################
+
+### ~~~~~~~~~~~~~~~~~~~~~ ###
+### 1.1. R function calls ###
+### ~~~~~~~~~~~~~~~~~~~~~ ###
+
+# ~ Find the words in moby that are more than 20 letters long
+
+moby[nchar(moby)>20]
+
+tail(weightRatings)
+#      Subject Rating Trial Sex      Word Frequency  Class
+# 1615      T1      1    76   F      pear  4.727388  plant
+# 1616      T1      4    77   F       pig  6.660575 animal
+# 1617      T1      1    78   F   avocado  3.433987  plant
+# 1618      T1      1    79   F    spider  4.844187 animal
+# 1619      T1      2    80   F pineapple  3.988984  plant
+# 1620      T1      1    81   F    tomato  5.545177  plant
+
+# ~ What is the output of (you can find the answer in the above snippet of weightRatings):
+
+max(which(weightRatings$Frequency < 5 & weightRatings$Class == "animal"))
+# 1618
+# Remember, which() gives you the index number (in this case, the row number)
+
+summary(weightRatings)
+
+#    Subject         Rating         Trial    Sex             Word        Frequency        Class    
+# A1     :  81   Min.   :1.00   Min.   : 1   F:1134   almond   :  20   Min.   :1.792   animal:920  
+# A2     :  81   1st Qu.:1.00   1st Qu.:21   M: 486   ant      :  20   1st Qu.:3.970   plant :700  
+# G      :  81   Median :2.00   Median :41            apple    :  20   Median :4.812               
+# H      :  81   Mean   :2.57   Mean   :41            apricot  :  20   Mean   :4.761               
+# I1     :  81   3rd Qu.:3.00   3rd Qu.:61            asparagus:  20   3rd Qu.:5.631               
+# I2     :  81   Max.   :7.00   Max.   :81            avocado  :  20   Max.   :7.772               
+# (Other):1134   
+
+# ~ Find the words with the highest weight rating
+
+weightRatings$Word[weightRatings$Rating == 7] # We can tell from the summary that the max is 7
+unique(weightRatings$Word[weightRatings$Rating == 7])
+
+# ~ Calculate the average weight rating for the word "pear" across subjects
+
+mean(weightRatings$Rating[weightRatings$Word=="pear"])
+
+# ~ Calculate the mean weight ratings for each word in some matrix/dataframe format
+
+tapply(weightRatings$Rating, weightRatings$Word, mean)
+aggregate(Rating ~ Word, data=weightRatings, mean)
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 1.2. Interpreting plots ###
+### ~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+plot(meanWeightRating ~ Class, data=ratings, yaxt="n")
+axis(2, at=seq(0, 5, by=0.5))
+
+# ~ T or F: More than 75% of the meanWeightRating scores for animals is above 3.0
+# Answer: T. The bottom of the box is the 25% quartile, so everything above it is 75% of the data,
+#            and since the bottom of the box is higher than 3.0, the statement is true.
+
+# ~ What is the mean/average meanWeightRating score for plants?
+# Answer: Trick question! You cannot find or calculate the mean from this plot.
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 1.3. Reading/interpreting test output ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+### Linear regression ###
+
+r.lm <- lm(meanSizeRating ~ Frequency + Class, data=ratings)
+summary(r.lm)
+
+# Call:
+# lm(formula = meanSizeRating ~ Frequency + Class, data = ratings)
+# 
+# Residuals:
+#      Min       1Q   Median       3Q      Max 
+# -1.18828 -0.20840  0.02022  0.21250  0.89824 
+# 
+# Coefficients:
+#             Estimate Std. Error t value Pr(>|t|)    
+# (Intercept)  3.19113    0.19117  16.692   <2e-16 ***
+# Frequency    0.09394    0.03561   2.638   0.0101 *  
+# Classplant  -1.68952    0.09061 -18.647   <2e-16 ***
+# ---
+# Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 0.3802 on 78 degrees of freedom
+# Multiple R-squared:  0.8488,    Adjusted R-squared:  0.845 
+# F-statistic:   219 on 2 and 78 DF,  p-value: < 2.2e-16
+
+head(ratings[,c(1,2,6,13)])
+#        Word Frequency  Class meanSizeRating
+# 1    almond  4.204693  plant         1.8912
+# 2       ant  5.347108 animal         3.6275
+# 3     apple  6.304449  plant         2.4730
+# 4   apricot  3.828641  plant         1.7597
+# 5 asparagus  3.663562  plant         1.8660
+# 6   avocado  3.433987  plant         1.7737
+
+# ~ Calculate the *predicted* meanSizeRating of the word "ant"
+# Answer: predicted value = beta-0 + (beta-1 * x1) + (beta-2 * x2)...
+#                         = intercept + (Frequency estimate * actual frequency of "ant")
+#                                     + (Classplant estimate * 0)
+#                         = 3.191 + (0.094 * 5.347) + (-1.69 * 0)
+
+# ~ Calculate the *predicted* meanSizeRating of the word "apricot"
+# Answer: predicted value = intercept + (Frequency estimate * actual frequency of "apricot")
+#                                     + (Classplant estimate * 1)
+#                         = 3.191 + (0.094 * 3.829) + (-1.69 * 1)
+
+# ~ Describe how you would calculate the *residual* for the word "ant"
+# Answer = predicted value - actual value of meanSizeRating for "ant"
+#        = (3.191 + (0.094 * 5.347) + (-1.69 * 0)) - 3.628
+
+# ~ Is there any evidence that there is any violation of the normality assumption in this model?
+# Answer: We can check the residuals to see if the min and max are equally away from 0, and also
+#         that the first and third quartiles are equally away from 0, and the median to be close
+#         to zero as well. 
+#         BUT, of course we would still want to plot the density of the residuals to make sure
+#         there is only one peak.
+
+
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+### 1.4. Deciding what test to use ###
+### ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ###
+
+### Speech rate ###
+
+# A researcher wants to test the hypothesis that people perceive their native language
+# to be spoken at a faster rate than other languages. 
+
+# The researcher gets a group of 40 monolingual Spanish speakers to rate the speech 
+# rate of two sets of recordings, one in Spanish and one in Italian.
+
+# The researcher calculates the average rating for each set of recordings by speaker,
+# and the resulting data frame quick.df begins like this:
+
+# Participant   NativeLanguage   SpanishRatedQuickness   ItalianRatedQuickness
+#           1          Spanish                     4.3                     3.2
+#           2          Spanish                     3.9                     4.2
+#           3          Spanish                     5.1                     5.3
+#         ...              ...                     ...                     ...
+
+# Now the researcher has hired you to recommend a suitable statistical test for
+# their hypothesis that Spanish speakers perceive Spanish utterances to be faster
+# than Italian
+
+# ~ If there are several types of the test you are using, specify what type it is.
+
+# We want to do a two-sample, one-tailed, paired t-test:
+
+t.test(quick.df$SpanishRatedQuickness, quick.df$ItalianRatedQuickness, 
+       alternative="greater", paired=T)
+
+# -- Why paired? -- Because each subject rated both Spanish and Italian recordings, so
+#                   we need to take into account that there may be some within-subject
+#                   factor.
+
+# -- Why one-tailed/directional? -- Because the researcher wants to test specifically
+#                                   that Spanish is *greater* than Italian in perceived 
+#                                   speech rate. Note the order of the two data sets
+#                                   in the function call. (In a two-tailed/non-directional
+#                                   t-test, the order doesn't matter.)
+
+
+# ~ What assumptions about the data need to be met in order for the test to be valid?
+
+# 1. Normality - the distribution of each set of data (the Spanish set, and the Italian set) 
+#                should follow a normal distribution
+
+# 2. Independence - each set of ratings scores by speaker doesn't influence those of other
+#                   speakers somehow; they are independent of each other
+#                 - a case where the independence assumption is violated would be if somehow each
+#                   speaker could see what ratings other speakers gave before they decided what
+#                   scores to give themselves
+
+#                 - in our case, by doing a paired t-test we actually assume and account for
+#                   the possible relationship between the Spanish and Italian ratings for 
+#                   each speaker, so this is not a problem for the independence assumption
